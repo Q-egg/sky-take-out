@@ -7,6 +7,7 @@ import com.sky.entity.Setmeal;
 import com.sky.enumeration.OperationType;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface SetmealMapper {
@@ -47,4 +48,13 @@ public interface SetmealMapper {
      */
     @Select("select * from setmeal where id = #{id}")
     Setmeal queryById(Long id);
+
+    /**
+     * 根据id起售停售套餐
+     * @param
+     * @param id
+     */
+    @Update("update setmeal set status = #{setmeal.status},update_time = #{setmeal.updateTime},update_user = #{setmeal.updateUser} where id = #{id}")
+    @AutoFill(OperationType.UPDATE)
+    void startOrStop(Setmeal setmeal, Long id);
 }

@@ -42,4 +42,18 @@ public interface SetmealDishMapper {
      */
     @Select("select * from setmeal_dish where setmeal_id = #{id}")
     List<SetmealDish> getDishBySetmealId(Long id);
+
+
+    /**
+     * 判断套餐中是否有未起售的菜品
+     * @param id
+     * @return
+     */
+    @Select("SELECT\n" +
+            "count(0)\n" +
+            "FROM dish d\n" +
+            "LEFT JOIN setmeal_dish sd ON d.id = sd.dish_id\n" +
+            "LEFT JOIN setmeal s ON sd.setmeal_id = s.id\n" +
+            "where d.status = 0;")
+    Integer queryStatusWithDish(Long id);
 }

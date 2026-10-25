@@ -3,11 +3,13 @@ package com.sky.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.sky.constant.MessageConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Dish;
 import com.sky.entity.Setmeal;
 import com.sky.entity.SetmealDish;
+import com.sky.exception.SetmealEnableFailedException;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
@@ -95,6 +97,28 @@ public class SetmealServiceImpl implements SetmealService {
             setmealDishes.forEach(setmealDish -> {setmealDish.setSetmealId(setmeal.getId());});
             setmealDishMapper.save(setmealDishes);
         }
+    }
+
+
+    /**
+     * 起售停售套餐
+     * @param status
+     * @param id
+     */
+    public void startOrStop(Integer status, Long id)
+    {
+        //判断套餐中是否有未起售的菜品
+        Integer dish  = setmealDishMapper.queryStatusWithDish(id);
+        if(dish != null && dish > 0){
+            throw new SetmealEnableFailedException(
+                    MessageConstant.SETMEAL_ENABLE_FAILED
+            );
+        }
+        Setmeal setmeal = new Setmeal();
+        setmeal.setStatus(status);
+
+        //设置销售状态
+        setmealMapper.startOrStop(setmeal,id);
     }
 
 
