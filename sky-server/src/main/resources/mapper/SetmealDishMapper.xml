@@ -15,9 +15,9 @@
 
 
     <insert id="save">
-        insert into setmeal_dish(dish_id, name, price, copies) values
+        insert into setmeal_dish(setmeal_id,dish_id, name, price, copies) values
         <foreach collection="setmealDishes" item="setmealDish" separator="," >
-            (#{setmealDish.dishId},#{setmealDish.name},#{setmealDish.price},#{setmealDish.copies})
+            (#{setmealDish.setmealId},#{setmealDish.dishId},#{setmealDish.name},#{setmealDish.price},#{setmealDish.copies})
         </foreach>
     </insert>
 </mapper>
