@@ -56,4 +56,10 @@ public interface SetmealDishMapper {
             "LEFT JOIN setmeal s ON sd.setmeal_id = s.id\n" +
             "where d.status = 0;")
     Integer queryStatusWithDish(Long id);
+
+    /**
+     * 根据id批量删除套餐菜品对应关系
+     * @param ids
+     */
+    void deleteBySetmealIds(List<Long> ids);
 }

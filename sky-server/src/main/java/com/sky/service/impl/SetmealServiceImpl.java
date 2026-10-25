@@ -121,5 +121,20 @@ public class SetmealServiceImpl implements SetmealService {
         setmealMapper.startOrStop(setmeal,id);
     }
 
+    /**
+     * 根据ids批量删除套餐数据
+     * @param ids
+     */
+    @Transactional
+    public void deleteByIds(List<Long> ids)
+    {
+        //删除套餐数据
+        setmealMapper.deleteByIds(ids);
+
+        //删除套餐菜品关系数据
+        setmealDishMapper.deleteBySetmealIds(ids);
+
+    }
+
 
 }
