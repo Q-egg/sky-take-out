@@ -151,8 +151,16 @@ public class DishServiceImpl implements DishService {
             flavors.forEach(flavor -> {flavor.setDishId(dishDTO.getId());});
             dishFlavorMapper.insertBatch(flavors);
         }
+    }
 
-
-
+    /**
+     * 根据id起售停售菜品
+     * @param status
+     * @param id
+     */
+    public void startOrStop(Integer status, Long id)
+    {
+        //改变销售状态
+        dishMapper.startOrStop(status,id);
     }
 }
