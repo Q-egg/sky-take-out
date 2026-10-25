@@ -77,4 +77,13 @@ public interface DishMapper {
 
     @Update("update dish set status = #{status} where id = #{id}")
     void startOrStop(Integer status, Long id);
+
+    /**
+     * 根据分类id查询菜品
+     * @param
+     * @return
+     */
+
+    @Select("select id,name, category_id, price, image, description, status, create_time, update_time, create_user, update_user from dish where category_id = #{categoryId}")
+    List<Dish> queryListByCategoryId(Long categoryId);
 }

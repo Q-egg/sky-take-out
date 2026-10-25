@@ -163,4 +163,15 @@ public class DishServiceImpl implements DishService {
         //改变销售状态
         dishMapper.startOrStop(status,id);
     }
+
+
+    /**
+     * 根据分类ID查询菜品
+     * @param
+     * @return
+     */
+    public List<Dish> queryListByCategoryId(Long categoryId) {
+        List<Dish> dish = dishMapper.queryListByCategoryId(categoryId);
+        return dish;
+    }
 }
