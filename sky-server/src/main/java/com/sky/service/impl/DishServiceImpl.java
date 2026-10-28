@@ -171,9 +171,9 @@ public class DishServiceImpl implements DishService {
      * @param
      * @return
      */
-    public List<Dish> queryListByCategoryId(Long categoryId) {
-        List<Dish> dish = dishMapper.queryListByCategoryId(categoryId);
-        return dish;
+    public List<Dish> queryListByCategoryId(Dish dish) {
+        List<Dish> dishList = dishMapper.queryListByCategoryId(dish);
+        return dishList;
     }
 
     /**
@@ -182,7 +182,7 @@ public class DishServiceImpl implements DishService {
      * @return
      */
     public List<DishVO> listWithFlavor(Dish dish) {
-        List<Dish> dishList = dishMapper.queryListByCategoryId(dish.getCategoryId());
+        List<Dish> dishList = dishMapper.queryListByCategoryId(dish);
 
         List<DishVO> dishVOList = new ArrayList<>();
 
