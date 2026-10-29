@@ -15,7 +15,7 @@ public interface ShoppingCartMapper {
 
 
     /**
-     * 动态条件查询
+     * 动态条件查询购物车数据
      * @param shoppingCart
      * @return
      */
