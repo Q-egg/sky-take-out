@@ -33,44 +33,41 @@ public class HttpClientUtil {
      * @param paramMap
      * @return
      */
-    public static String doGet(String url,Map<String,String> paramMap){
-        // 创建Httpclient对象
-        CloseableHttpClient httpClient = HttpClients.createDefault();
+    public static String doGet(String url, Map<String, String> paramMap) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 
-        String result = "";
-        CloseableHttpResponse response = null;
-
-        try{
             URIBuilder builder = new URIBuilder(url);
-            if(paramMap != null){
-                for (String key : paramMap.keySet()) {
-                    builder.addParameter(key,paramMap.get(key));
+            builder.setCharset(java.nio.charset.StandardCharsets.UTF_8);
+
+            if (paramMap != null) {
+                for (Map.Entry<String, String> entry : paramMap.entrySet()) {
+                    builder.addParameter(entry.getKey(), entry.getValue());
                 }
             }
-            URI uri = builder.build();
 
-            //创建GET请求
-            HttpGet httpGet = new HttpGet(uri);
+            HttpGet httpGet = new HttpGet(builder.build());
 
-            //发送请求
-            response = httpClient.execute(httpGet);
+            // 使用当前工具类已有的超时配置
+            httpGet.setConfig(builderRequestConfig());
 
-            //判断响应状态
-            if(response.getStatusLine().getStatusCode() == 200){
-                result = EntityUtils.toString(response.getEntity(),"UTF-8");
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                int statusCode = response.getStatusLine().getStatusCode();
+
+                if (statusCode != 200) {
+                    throw new IllegalStateException(
+                            "HTTP 请求失败，状态码：" + statusCode);
+                }
+
+                if (response.getEntity() == null) {
+                    throw new IllegalStateException("HTTP 响应内容为空");
+                }
+
+                return EntityUtils.toString(response.getEntity(), "UTF-8");
             }
-        }catch (Exception e){
-            e.printStackTrace();
-        }finally {
-            try {
-                response.close();
-                httpClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+
+        } catch (Exception e) {
+            throw new IllegalStateException("调用外部服务失败", e);
         }
-
-        return result;
     }
 
     /**

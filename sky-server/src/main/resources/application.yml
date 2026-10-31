@@ -61,3 +61,9 @@ sky:
     # weChatPayCertFilePath: ${sky.wechat.weChatPayCertFilePath}
     notifyUrl: ${sky.wechat.notifyUrl}
     refundNotifyUrl: ${sky.wechat.refundNotifyUrl}
+  amap:
+    key: ${sky.amp}
+  shop:
+    address: ${sky.shop.address}
+    city: ${sky.shop.city}
+    max-delivery-distance-meters: ${sky.shop.max-delivery-distance-meters}

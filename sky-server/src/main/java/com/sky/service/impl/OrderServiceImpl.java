@@ -11,9 +11,11 @@ import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.*;
+import com.sky.properties.ShopProperties;
 import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.service.ShoppingCartService;
+import com.sky.utils.AmapUtil;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
@@ -23,6 +25,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -52,6 +55,12 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private UserMapper userMapper;
 
+    @Autowired
+    private AmapUtil amapUtil;
+
+    @Autowired
+    private ShopProperties shopProperties;
+
 
 
 
@@ -61,23 +70,36 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
 
-        //1.处理各种业务异常（地址簿为空，购物车数据为空）
-        AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
-        if(addressBook == null){
-
-            //抛出业务异常
-            throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
-        }
-
-        //查询当前用户购物车数据
-        ShoppingCart shoppingCart = new ShoppingCart();
         Long userId = BaseContext.getCurrentId();
-        shoppingCart.setUserId(userId);
-        List<ShoppingCart> shoppingCartListlist = shoppingCartMapper.list(shoppingCart);
-        if(shoppingCartListlist == null || shoppingCartListlist.size() == 0){
-            //抛出业务异常
-            throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
+
+        // 1. 校验地址是否存在
+        AddressBook addressBook =
+                addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
+
+        if (addressBook == null) {
+            throw new AddressBookBusinessException(
+                    MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
+
+        // 2. 校验地址是否属于当前用户
+        if (userId == null || !userId.equals(addressBook.getUserId())) {
+            throw new AddressBookBusinessException("无权使用该收货地址");
+        }
+
+        // 3. 校验购物车
+        ShoppingCart shoppingCart = new ShoppingCart();
+        shoppingCart.setUserId(userId);
+
+        List<ShoppingCart> shoppingCartListlist =
+                shoppingCartMapper.list(shoppingCart);
+
+        if (shoppingCartListlist == null || shoppingCartListlist.isEmpty()) {
+            throw new ShoppingCartBusinessException(
+                    MessageConstant.SHOPPING_CART_IS_NULL);
+        }
+
+        // 4. 校验配送范围，通过后才执行后续订单保存
+        checkDeliveryRange(addressBook);
 
 
         //2. 向订单表插入1条数据
@@ -121,6 +143,75 @@ public class OrderServiceImpl implements OrderService {
         OrderSubmitVO orderSubmitVO = OrderSubmitVO.builder().id(orders.getId()).orderTime(orders.getOrderTime()).orderNumber(orders.getNumber()).orderAmount(orders.getAmount()).build();
         return orderSubmitVO;
 
+    }
+
+
+    /**
+     * 校验收货地址是否在配送范围内。
+     */
+    private void checkDeliveryRange(AddressBook addressBook) {
+        // 1. 检查门店配置
+        Integer maxDistance =
+                shopProperties.getMaxDeliveryDistanceMeters();
+
+        if (maxDistance == null || maxDistance <= 0) {
+            throw new OrderBusinessException("门店配送距离配置异常");
+        }
+
+        if (!StringUtils.hasText(shopProperties.getAddress())) {
+            throw new OrderBusinessException("门店地址未配置");
+        }
+
+
+        // 先校验城市，跨城不调用地图接口
+        String shopCity = shopProperties.getCity();
+        String deliveryCity = addressBook.getCityName();
+
+        if (!StringUtils.hasText(shopCity)) {
+            throw new OrderBusinessException("门店城市未配置");
+        }
+
+        if (!StringUtils.hasText(deliveryCity)) {
+            throw new AddressBookBusinessException("请完善收货地址的城市信息");
+        }
+
+        if (!normalizeCity(shopCity).equals(normalizeCity(deliveryCity))) {
+            throw new OrderBusinessException(
+                    MessageConstant.DELIVERY_CITY_OUT);
+        }
+
+
+        // 2. 检查并拼接收货地址
+        if (!StringUtils.hasText(addressBook.getDetail())) {
+            throw new AddressBookBusinessException("请完善收货详细地址");
+        }
+
+        String deliveryAddress =
+                addressPart(addressBook.getProvinceName()) +
+                        addressPart(addressBook.getCityName()) +
+                        addressPart(addressBook.getDistrictName()) +
+                        addressPart(addressBook.getDetail());
+
+        // 3. 获取门店坐标
+        String origin = amapUtil.geocode(
+                shopProperties.getAddress(),
+                shopProperties.getCity()
+        );
+
+        // 4. 获取收货地址坐标
+        String destination = amapUtil.geocode(
+                deliveryAddress,
+                addressBook.getCityName()
+        );
+
+        // 5. 获取电动车路线距离，单位米
+        long distance =
+                amapUtil.getElectrobikeDistance(origin, destination);
+
+        // 6. 超出配送范围时阻止下单
+        if (distance > maxDistance) {
+            throw new OrderBusinessException(MessageConstant.DELIVERY_OUT);
+        }
     }
 
 
@@ -379,5 +470,18 @@ public class OrderServiceImpl implements OrderService {
 
     private String addressPart(String value) {
         return value == null ? "" : value;
+    }
+
+    /**
+     * 统一城市名称：例如“西安市”和“西安”统一为“西安”。
+     */
+    private String normalizeCity(String city) {
+        String name = city.trim();
+
+        if (name.endsWith("市")) {
+            return name.substring(0, name.length() - 1);
+        }
+
+        return name;
     }
 }
