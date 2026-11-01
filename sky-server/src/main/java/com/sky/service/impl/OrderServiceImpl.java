@@ -1,5 +1,6 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -21,6 +22,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,7 +32,9 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 
@@ -60,6 +64,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private ShopProperties shopProperties;
+
+    @Autowired
+    private WebSocketServer webSocketServer;
 
 
 
@@ -467,6 +474,35 @@ public class OrderServiceImpl implements OrderService {
         }
 
     }
+
+    /**
+     * 用户催单
+     * @param id
+     */
+    public void reminder(Long id) {
+
+        Long userId = BaseContext.getCurrentId();
+        Orders order = orderMapper.getOrderById(id, userId);
+        //校验订单是否存在
+        if(order == null){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Map map = new HashMap<>();
+        map.put("type", 2); //1表示来单提醒，2表示用户催单
+        map.put("orderId", id);
+        map.put("content","订单号:" + order.getNumber());
+        String json = JSON.toJSONString(map);
+
+        //通过WebSocket向客户端浏览器推送消息
+        webSocketServer.sendToAllClient(json);
+    }
+
+
+    /**
+     * 转换
+     * @param value
+     * @return
+     */
 
     private String addressPart(String value) {
         return value == null ? "" : value;
