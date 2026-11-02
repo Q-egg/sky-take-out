@@ -2,6 +2,7 @@ package com.sky.mapper;
 
 
 import com.github.pagehelper.Page;
+import com.sky.dto.GoodsSalesDTO;
 import com.sky.dto.OrdersCancelDTO;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersRejectionDTO;
@@ -145,4 +146,9 @@ public interface OrderMapper {
      * 根据动态条件统计订单数量
      */
     Integer countByMap(Map map);
+
+    /**
+     * 查询销量前十的商品
+     */
+    List<GoodsSalesDTO> getSalesTop10(LocalDateTime begin, LocalDateTime end, Integer status);
 }
